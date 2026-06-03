@@ -17,8 +17,78 @@
       align-items: center;
       justify-content: center;
       padding: 24px;
+      gap: 0;
     }
 
+    /* API Key bar */
+    .api-bar {
+      width: 100%;
+      max-width: 520px;
+      margin-bottom: 48px;
+    }
+
+    .api-bar label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: #555;
+      margin-bottom: 8px;
+    }
+
+    .api-bar-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .api-input {
+      flex: 1;
+      background: #141414;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      color: #f0f0f0;
+      font-size: 0.88rem;
+      padding: 11px 14px;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.5px;
+    }
+
+    .api-input::placeholder { color: #444; }
+    .api-input:focus { border-color: #444; }
+    .api-input.saved { border-color: rgba(80, 200, 120, 0.5); }
+
+    .btn-save {
+      background: #1e1e1e;
+      color: #f5c518;
+      border: 1px solid rgba(245, 197, 24, 0.3);
+      padding: 11px 20px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-save:hover {
+      background: rgba(245, 197, 24, 0.1);
+      border-color: rgba(245, 197, 24, 0.6);
+    }
+
+    .api-status {
+      font-size: 0.78rem;
+      margin-top: 7px;
+      min-height: 16px;
+      transition: color 0.2s;
+    }
+
+    .api-status.ok  { color: #50c878; }
+    .api-status.err { color: #ff6b6b; }
+
+    /* Main */
     h1 {
       font-size: clamp(1.6rem, 4vw, 2.4rem);
       font-weight: 800;
@@ -27,9 +97,7 @@
       text-align: center;
     }
 
-    h1 span {
-      color: #f5c518;
-    }
+    h1 span { color: #f5c518; }
 
     .subtitle {
       color: #666;
@@ -47,7 +115,7 @@
       font-weight: 800;
       border-radius: 12px;
       cursor: pointer;
-      transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+      transition: transform 0.15s, box-shadow 0.15s, background 0.15s, opacity 0.15s;
       box-shadow: 0 4px 24px rgba(245, 197, 24, 0.35);
       letter-spacing: 0.3px;
       user-select: none;
@@ -59,13 +127,12 @@
       box-shadow: 0 8px 32px rgba(245, 197, 24, 0.5);
     }
 
-    .btn:active:not(:disabled) {
-      transform: translateY(0);
-    }
+    .btn:active:not(:disabled) { transform: translateY(0); }
 
     .btn:disabled {
-      opacity: 0.6;
+      opacity: 0.35;
       cursor: not-allowed;
+      box-shadow: none;
     }
 
     /* Loader */
@@ -183,7 +250,6 @@
       transform: translateY(-1px);
     }
 
-    /* Error */
     .error {
       display: none;
       margin-top: 24px;
@@ -198,10 +264,21 @@
 </head>
 <body>
 
+  <!-- API Key -->
+  <div class="api-bar">
+    <label>Anthropic API Key</label>
+    <div class="api-bar-row">
+      <input class="api-input" id="apiKeyInput" type="password"
+             placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false" />
+      <button class="btn-save" onclick="saveKey()">Save</button>
+    </div>
+    <div class="api-status" id="apiStatus"></div>
+  </div>
+
   <h1>Viral Story <span>Finder</span></h1>
   <p class="subtitle">Finds the most viral CBS News story right now</p>
 
-  <button class="btn" id="findBtn" onclick="findStory()">🔍 Найти вирусную историю</button>
+  <button class="btn" id="findBtn" onclick="findStory()" disabled>🔍 Найти вирусную историю</button>
 
   <div class="loader" id="loader">
     <div class="spinner"></div>
@@ -214,7 +291,8 @@
     <div class="result-label">🔥 Вирусная история</div>
     <div class="result-title" id="resultTitle"></div>
     <a class="result-link" id="resultLink" href="#" target="_blank" rel="noopener">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
         <polyline points="15 3 21 3 21 9"/>
         <line x1="10" y1="14" x2="21" y2="3"/>
@@ -226,16 +304,60 @@
   <button class="btn-more" id="moreBtn" onclick="findStory()">🔄 Найти ещё</button>
 
   <script>
+    const LS_KEY = 'vsf_api_key';
     const PROMPT = `Search cbsnews.com for the most recent emotionally powerful, surprising, or heartwarming news story published today or this week. The story must have high viral potential — similar to stories about: a loyal dog staying with a lost sheep, a janitor reporting a teacher for CSAM, a father celebrating his baby daughter's birth, a graduation student carrying his father's gas tank on stage. Find ONE best story. Return ONLY: the story title and the direct URL to the article on cbsnews.com. Nothing else.`;
 
-    async function findStory() {
-      const findBtn  = document.getElementById('findBtn');
-      const loader   = document.getElementById('loader');
-      const result   = document.getElementById('result');
-      const errorEl  = document.getElementById('error');
-      const moreBtn  = document.getElementById('moreBtn');
+    function setReady(ready) {
+      document.getElementById('findBtn').disabled = !ready;
+    }
 
-      // Reset UI
+    function saveKey() {
+      const val = document.getElementById('apiKeyInput').value.trim();
+      const status = document.getElementById('apiStatus');
+      const input  = document.getElementById('apiKeyInput');
+
+      if (!val.startsWith('sk-ant-')) {
+        status.textContent = '⚠ Ключ должен начинаться с sk-ant-';
+        status.className = 'api-status err';
+        input.classList.remove('saved');
+        setReady(false);
+        return;
+      }
+
+      localStorage.setItem(LS_KEY, val);
+      input.classList.add('saved');
+      status.textContent = '✓ Ключ сохранён';
+      status.className = 'api-status ok';
+      setReady(true);
+    }
+
+    // Restore saved key on load
+    (function init() {
+      const saved = localStorage.getItem(LS_KEY);
+      if (saved) {
+        document.getElementById('apiKeyInput').value = saved;
+        document.getElementById('apiKeyInput').classList.add('saved');
+        document.getElementById('apiStatus').textContent = '✓ Ключ загружен из памяти';
+        document.getElementById('apiStatus').className = 'api-status ok';
+        setReady(true);
+      }
+    })();
+
+    // Also save on Enter in the input
+    document.getElementById('apiKeyInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') saveKey();
+    });
+
+    async function findStory() {
+      const apiKey  = localStorage.getItem(LS_KEY);
+      if (!apiKey) { alert('Сначала введите и сохраните API ключ.'); return; }
+
+      const findBtn = document.getElementById('findBtn');
+      const loader  = document.getElementById('loader');
+      const result  = document.getElementById('result');
+      const errorEl = document.getElementById('error');
+      const moreBtn = document.getElementById('moreBtn');
+
       findBtn.disabled = true;
       loader.classList.add('visible');
       result.classList.remove('visible');
@@ -248,9 +370,8 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': window.ANTHROPIC_API_KEY || '',
+            'x-api-key': apiKey,
             'anthropic-version': '2023-06-01',
-            'anthropic-beta': 'interleaved-thinking-2025-05-14'
           },
           body: JSON.stringify({
             model: 'claude-sonnet-4-20250514',
@@ -267,7 +388,6 @@
 
         const data = await response.json();
 
-        // Extract text from content blocks
         let text = '';
         for (const block of (data.content || [])) {
           if (block.type === 'text') text += block.text;
@@ -276,12 +396,11 @@
         text = text.trim();
         if (!text) throw new Error('Пустой ответ от API.');
 
-        // Parse title + URL
         const urlMatch = text.match(/https?:\/\/[^\s\)]+/);
         const url = urlMatch ? urlMatch[0].replace(/[.,;)]+$/, '') : null;
 
         let title = text;
-        if (url) title = text.replace(url, '').replace(/^[\s\-:*#]+|[\s\-:*#]+$/g, '').trim();
+        if (url) title = text.replace(url, '').replace(/^[\s\-:*#\n]+|[\s\-:*#\n]+$/g, '').trim();
         if (!title) title = 'CBS News — вирусная история';
 
         document.getElementById('resultTitle').textContent = title;
@@ -296,6 +415,7 @@
 
         result.classList.add('visible');
         moreBtn.classList.add('visible');
+        moreBtn.textContent = '🔄 Найти ещё';
 
       } catch (err) {
         errorEl.textContent = '⚠️ Ошибка: ' + err.message;
