@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Viral Story Finder</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0a0a0a;
+      color: #f0f0f0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    h1 {
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    h1 span { color: #f5c518; }
+
+    .subtitle {
+      color: #666;
+      font-size: 0.95rem;
+      margin-bottom: 48px;
+      text-align: center;
+    }
+
+    .btn {
+      background: #f5c518;
+      color: #0a0a0a;
+      border: none;
+      padding: 18px 48px;
+      font-size: 1.15rem;
+      font-weight: 800;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+      box-shadow: 0 4px 24px rgba(245, 197, 24, 0.35);
+      letter-spacing: 0.3px;
+      user-select: none;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: #ffd84d;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(245, 197, 24, 0.5);
+    }
+
+    .btn:active:not(:disabled) { transform: translateY(0); }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* Loader */
+    .loader {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      margin-top: 40px;
+    }
+
+    .loader.visible { display: flex; }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #222;
+      border-top-color: #f5c518;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loader-text {
+      color: #888;
+      font-size: 0.9rem;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+
+    /* Result card */
+    .result {
+      display: none;
+      margin-top: 40px;
+      background: #141414;
+      border: 1px solid #2a2a2a;
+      border-radius: 16px;
+      padding: 28px 32px;
+      max-width: 640px;
+      width: 100%;
+      animation: fadeUp 0.4s ease;
+    }
+
+    .result.visible { display: block; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #f5c518;
+      margin-bottom: 12px;
+    }
+
+    .result-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      line-height: 1.4;
+      margin-bottom: 10px;
+      color: #f0f0f0;
+    }
+
+    .result-why {
+      font-size: 0.88rem;
+      color: #888;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .result-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 20px;
+    }
+
+    .tag {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      color: #aaa;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      letter-spacing: 0.3px;
+    }
+
+    .result-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #f5c518;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: 1px solid rgba(245, 197, 24, 0.3);
+      padding: 10px 18px;
+      border-radius: 8px;
+      transition: background 0.15s, border-color 0.15s;
+      word-break: break-all;
+    }
+
+    .result-link:hover {
+      background: rgba(245, 197, 24, 0.1);
+      border-color: rgba(245, 197, 24, 0.6);
+    }
+
+    .result-link svg { flex-shrink: 0; }
+
+    .btn-more {
+      display: none;
+      margin-top: 24px;
+      background: transparent;
+      color: #f5c518;
+      border: 1px solid rgba(245, 197, 24, 0.4);
+      padding: 12px 32px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, transform 0.15s;
+    }
+
+    .btn-more.visible { display: inline-block; }
+
+    .btn-more:hover {
+      background: rgba(245, 197, 24, 0.1);
+      border-color: rgba(245, 197, 24, 0.7);
+      transform: translateY(-1px);
+    }
+
+    .error {
+      display: none;
+      margin-top: 24px;
+      color: #ff6b6b;
+      font-size: 0.9rem;
+      text-align: center;
+      max-width: 480px;
+    }
+
+    .error.visible { display: block; }
+  </style>
+</head>
+<body>
+
+  <h1>Viral Story <span>Finder</span></h1>
+  <p class="subtitle">Finds the most viral CBS News story right now</p>
+
+  <button class="btn" id="findBtn" onclick="findStory()">🔍 Найти вирусную историю</button>
+
+  <div class="loader" id="loader">
+    <div class="spinner"></div>
+    <span class="loader-text">Ищем вирусную историю на CBS News…</span>
+  </div>
+
+  <div class="error" id="error"></div>
+
+  <div class="result" id="result">
+    <div class="result-label">🔥 Вирусная история</div>
+    <div class="result-title" id="resultTitle"></div>
+    <div class="result-why" id="resultWhy"></div>
+    <div class="result-tags" id="resultTags"></div>
+    <a class="result-link" id="resultLink" href="#" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+        <polyline points="15 3 21 3 21 9"/>
+        <line x1="10" y1="14" x2="21" y2="3"/>
+      </svg>
+      Открыть статью
+    </a>
+  </div>
+
+  <button class="btn-more" id="moreBtn" onclick="findStory()">🔄 Найти ещё</button>
+
+  <script>
+    async function findStory() {
+      const findBtn = document.getElementById('findBtn');
+      const loader  = document.getElementById('loader');
+      const result  = document.getElementById('result');
+      const errorEl = document.getElementById('error');
+      const moreBtn = document.getElementById('moreBtn');
+
+      findBtn.disabled = true;
+      loader.classList.add('visible');
+      result.classList.remove('visible');
+      errorEl.classList.remove('visible');
+      moreBtn.classList.remove('visible');
+      errorEl.textContent = '';
+
+      try {
+        const response = await fetch('/find-story', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+
+        document.getElementById('resultTitle').textContent = data.title || '—';
+        document.getElementById('resultWhy').textContent   = data.why  || '';
+
+        const tagsEl = document.getElementById('resultTags');
+        tagsEl.innerHTML = '';
+        (data.tags || []).forEach(t => {
+          const span = document.createElement('span');
+          span.className = 'tag';
+          span.textContent = '#' + t;
+          tagsEl.appendChild(span);
+        });
+
+        const link = document.getElementById('resultLink');
+        if (data.url) {
+          link.href = data.url;
+          link.style.display = 'inline-flex';
+        } else {
+          link.style.display = 'none';
+        }
+
+        result.classList.add('visible');
+        moreBtn.classList.add('visible');
+        moreBtn.textContent = '🔄 Найти ещё';
+
+      } catch (err) {
+        errorEl.textContent = '⚠️ Ошибка: ' + err.message;
+        errorEl.classList.add('visible');
+        moreBtn.classList.add('visible');
+        moreBtn.textContent = '🔄 Попробовать снова';
+      } finally {
+        loader.classList.remove('visible');
+        findBtn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
